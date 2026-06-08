@@ -413,6 +413,14 @@ SandboxResult sandbox_apply(const SandboxConfig &cfg) {
         return res;
     }
 
+    for (const auto &bm : cfg.bind_mounts) {
+        if (bm.mode == BindMount::Mode::COW) continue;
+        if (bm.src != bm.dst) {
+            res.error = "ro/wr SRC:DST bind remapping is only supported on Linux";
+            return res;
+        }
+    }
+
     // ── 1. COW: clonefile(src, dst) ──────────────────────────────────────
     // clonefile(2) creates an instant APFS COW snapshot of src at dst for the
     // initial workspace materialization.  If dst already contains data, treat

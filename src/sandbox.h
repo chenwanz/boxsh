@@ -7,7 +7,9 @@ namespace boxsh {
 
 // A single bind entry.  Three modes are supported:
 //   RO  — read-only:  host path exposed inside sandbox, writes denied.
+//         On Linux, src may be exposed at a different dst path.
 //   RW  — read-write: host path exposed inside sandbox, writes allowed.
+//         On Linux, src may be exposed at a different dst path.
 //   COW — copy-on-write: src is the read-only base; dst captures writes.
 //         The COW workspace semantics are consistent across platforms even
 //         though the host-side implementation differs (overlayfs on Linux,
@@ -16,8 +18,8 @@ namespace boxsh {
 struct BindMount {
     enum class Mode { RO, RW, COW };
     Mode        mode;
-    std::string src;  // ro/rw: access path; cow: source directory (read-only base)
-    std::string dst;  // ro/rw: same as src;  cow: destination (captures writes)
+    std::string src;  // ro/rw: source/access path; cow: source directory (read-only base)
+    std::string dst;  // ro/rw: destination/access path; cow: destination (captures writes)
 };
 
 // Configuration for a sandbox scope (global or per-request).

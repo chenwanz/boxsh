@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import sys
 import unittest
 
 from boxsh_py import CowBind, ReadOnlyBind, ReadWriteBind, format_changes, get_changes
@@ -195,3 +196,30 @@ class BoxshOverlayTests(unittest.TestCase):
             self.assertIn("ro", ro.stdout)
             self.assertEqual(wr.exit_code, 0)
             self.assertEqual((writable / "out.txt").read_text(encoding="utf-8"), "wr\n")
+
+    @unittest.skipIf(sys.platform == "darwin", "ro/wr bind remapping is Linux-only")
+    def test_read_only_and_read_write_bind_destination_format(self) -> None:
+        with TemporaryDirectory(prefix="boxsh-py-bind-dst-") as tmp_raw:
+            tmp = Path(tmp_raw)
+            readonly = tmp / "readonly"
+            readonly_dst = tmp / "readonly-view"
+            writable = tmp / "writable"
+            writable_dst = tmp / "writable-view"
+            readonly.mkdir()
+            writable.mkdir()
+            (readonly / "ro.txt").write_text("ro\n", encoding="utf-8")
+            (writable / "wr.txt").write_text("wr\n", encoding="utf-8")
+
+            with make_client(sandbox=True, binds=[ReadOnlyBind(path=readonly, dst=readonly_dst)]) as client:
+                ro = client.exec("cat ro.txt", cwd=readonly_dst)
+                denied = client.exec("printf bad > ro.txt", cwd=readonly_dst)
+
+            with make_client(sandbox=True, binds=[ReadWriteBind(path=writable, dst=writable_dst)]) as client:
+                wr = client.exec("printf changed > wr.txt && cat wr.txt", cwd=writable_dst)
+
+            self.assertEqual(ro.exit_code, 0)
+            self.assertEqual(ro.stdout, "ro\n")
+            self.assertNotEqual(denied.exit_code, 0)
+            self.assertEqual(wr.exit_code, 0)
+            self.assertEqual(wr.stdout, "changed")
+            self.assertEqual((writable / "wr.txt").read_text(encoding="utf-8"), "changed")

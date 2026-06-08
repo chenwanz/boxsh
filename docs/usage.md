@@ -1022,7 +1022,7 @@ Subsequent requests continue to work normally — the crashed worker is replaced
 }
 ```
 
-**Bind modes:** `cow:SRC:DST` (copy-on-write — project is read-only, writes go to DST), `ro:PATH` (read-only), `wr:PATH` (direct read-write). Add `--new-net-ns` to block network access.
+**Bind modes:** `cow:SRC:DST` (copy-on-write — project is read-only, writes go to DST), `ro:PATH` / `ro:SRC:DST` (read-only), `wr:PATH` / `wr:SRC:DST` (direct read-write). Add `--new-net-ns` to block network access. `ro:SRC:DST` and `wr:SRC:DST` remapping is supported on Linux.
 
 **Example handshake:**
 
@@ -1109,11 +1109,16 @@ boxsh --sandbox --bind wr:/data -c 'ls /data'
 
 # Read-only bind
 boxsh --sandbox --bind ro:/etc/resolv.conf -c 'cat /etc/resolv.conf'
+
+# Read-only bind with a different sandbox destination (Linux)
+boxsh --sandbox --bind ro:/srv/project:/workspace/project -c 'ls /workspace/project'
 ```
 
 Formats:
 - `--bind ro:PATH` — read-only
+- `--bind ro:SRC:DST` — read-only SRC exposed at DST (Linux)
 - `--bind wr:PATH` — read-write
+- `--bind wr:SRC:DST` — read-write SRC exposed at DST (Linux)
 
 
 ### Node.js SDK

@@ -40,7 +40,7 @@ export class BoxshClient {
      * @param {number}  [options.workers]     Worker count (default: 1)
      * @param {boolean} [options.sandbox]     Enable --sandbox flag
      * @param {boolean} [options.newNetNs]    Enable --new-net-ns flag
-     * @param {Array<{ mode: 'ro'|'wr', path: string } | { mode: 'cow', src: string, dst: string }>} [options.binds]
+     * @param {Array<{ mode: 'ro'|'wr', path: string } | { mode: 'ro'|'wr'|'cow', src: string, dst: string }>} [options.binds]
      */
     constructor(options = {}) {
         const boxsh = options.boxshPath ?? process.env['BOXSH'] ?? 'boxsh';
@@ -52,6 +52,8 @@ export class BoxshClient {
             for (const b of options.binds) {
                 if (b.mode === 'cow') {
                     args.push('--bind', `cow:${b.src}:${b.dst}`);
+                } else if ('src' in b && 'dst' in b) {
+                    args.push('--bind', `${b.mode}:${b.src}:${b.dst}`);
                 } else {
                     args.push('--bind', `${b.mode}:${b.path}`);
                 }

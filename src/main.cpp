@@ -50,7 +50,9 @@ void print_usage(const char *prog) {
         "                 is hidden unless explicitly exposed with --bind.\n"
         "  --new-net-ns   Create a new network namespace (disables outbound network).\n"
         "  --bind ro:PATH       Expose PATH read-only inside the sandbox.\n"
+        "  --bind ro:SRC:DST    Expose SRC read-only at DST inside the sandbox.\n"
         "  --bind wr:PATH       Expose PATH read-write inside the sandbox.\n"
+        "  --bind wr:SRC:DST    Expose SRC read-write at DST inside the sandbox.\n"
         "  --bind cow:SRC:DST   Create a copy-on-write workspace at DST with SRC as\n"
         "                       the read-only base.  Writes go to DST; SRC is never\n"
         "                       modified.  Existing DST contents are reused.\n"
@@ -93,7 +95,7 @@ static bool normalize_bind_path(std::string &path) {
     return !path.empty();
 }
 
-// Parse --bind ro:PATH | wr:PATH | cow:SRC:DST
+// Parse --bind ro:PATH | ro:SRC:DST | wr:PATH | wr:SRC:DST | cow:SRC:DST
 static bool parse_bind(const char *arg, BindMount &bm) {
     std::string s(arg);
     size_t colon = s.find(':');
@@ -104,13 +106,15 @@ static bool parse_bind(const char *arg, BindMount &bm) {
 
     if (mode_str == "ro") {
         bm.mode = BindMount::Mode::RO;
-        bm.src  = rest;
-        bm.dst  = rest;
+        size_t p2 = rest.find(':');
+        bm.src  = p2 == std::string::npos ? rest : rest.substr(0, p2);
+        bm.dst  = p2 == std::string::npos ? rest : rest.substr(p2 + 1);
         return normalize_bind_path(bm.src) && normalize_bind_path(bm.dst);
     } else if (mode_str == "wr") {
         bm.mode = BindMount::Mode::RW;
-        bm.src  = rest;
-        bm.dst  = rest;
+        size_t p2 = rest.find(':');
+        bm.src  = p2 == std::string::npos ? rest : rest.substr(0, p2);
+        bm.dst  = p2 == std::string::npos ? rest : rest.substr(p2 + 1);
         return normalize_bind_path(bm.src) && normalize_bind_path(bm.dst);
     } else if (mode_str == "cow") {
         size_t p2 = rest.find(':');
@@ -160,7 +164,7 @@ static Cli parse_cli(int argc, char **argv, int &remaining_argc,
             if (!parse_bind(optarg, bm)) {
                 std::fprintf(stderr,
                     "boxsh: invalid --bind argument: %s\n"
-                    "  expected: ro:PATH | wr:PATH | cow:SRC:DST\n",
+                    "  expected: ro:PATH | ro:SRC:DST | wr:PATH | wr:SRC:DST | cow:SRC:DST\n",
                     optarg);
                 std::exit(1);
             }

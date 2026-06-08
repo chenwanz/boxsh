@@ -29,11 +29,13 @@ class CowBind:
 @dataclass(frozen=True)
 class ReadOnlyBind:
     path: PathLike
+    dst: Optional[PathLike] = None
 
 
 @dataclass(frozen=True)
 class ReadWriteBind:
     path: PathLike
+    dst: Optional[PathLike] = None
 
 
 CowBindOption = CowBind
@@ -178,13 +180,19 @@ class BoxshClient:
         if isinstance(bind, CowBind):
             return f"cow:{_path_str(bind.src)}:{_path_str(bind.dst)}"
         if isinstance(bind, ReadOnlyBind):
+            if bind.dst is not None:
+                return f"ro:{_path_str(bind.path)}:{_path_str(bind.dst)}"
             return f"ro:{_path_str(bind.path)}"
         if isinstance(bind, ReadWriteBind):
+            if bind.dst is not None:
+                return f"wr:{_path_str(bind.path)}:{_path_str(bind.dst)}"
             return f"wr:{_path_str(bind.path)}"
         if isinstance(bind, Mapping):
             mode = bind.get("mode")
             if mode == "cow":
                 return f"cow:{_path_str(bind['src'])}:{_path_str(bind['dst'])}"
+            if "src" in bind and "dst" in bind:
+                return f"{mode}:{_path_str(bind['src'])}:{_path_str(bind['dst'])}"
             return f"{mode}:{_path_str(bind['path'])}"
         raise TypeError(f"Unsupported bind value: {bind!r}")
 

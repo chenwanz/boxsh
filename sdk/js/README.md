@@ -131,6 +131,21 @@ const client = new BoxshClient({
 });
 ```
 
+Read-only and read-write binds expose host paths without overlay semantics. By
+default the path is visible at the same absolute path inside the sandbox. On
+Linux, `src`/`dst` can expose a host source at a different sandbox path.
+
+```js
+const client = new BoxshClient({
+    sandbox: true,
+    binds: [
+        { mode: 'ro', path: '/usr/share/zoneinfo' },
+        { mode: 'ro', src: '/srv/repo-cache/project', dst: '/codebase/project' },
+        { mode: 'wr', src: '/tmp/session', dst: '/workspace' },
+    ],
+});
+```
+
 ---
 
 ## COW Bind (Overlay Filesystem)

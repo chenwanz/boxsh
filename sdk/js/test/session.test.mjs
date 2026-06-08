@@ -342,3 +342,49 @@ describe('BoxshClient — overlay sandbox', () => {
         });
     });
 });
+
+describe('BoxshClient — bind mounts', () => {
+    it('supports ro/wr source-to-destination bind options',
+        { skip: process.platform === 'darwin' ? 'ro/wr bind remapping is Linux-only' : false },
+        async () => {
+            const tmpDir = path.join(os.tmpdir(), `boxsh-sdk-bind-${Date.now()}`);
+            const roSrc = path.join(tmpDir, 'ro-src');
+            const roDst = path.join(tmpDir, 'ro-dst');
+            const wrSrc = path.join(tmpDir, 'wr-src');
+            const wrDst = path.join(tmpDir, 'wr-dst');
+            fs.mkdirSync(roSrc, { recursive: true });
+            fs.mkdirSync(wrSrc, { recursive: true });
+            fs.writeFileSync(path.join(roSrc, 'input.txt'), 'readonly\n');
+            fs.writeFileSync(path.join(wrSrc, 'input.txt'), 'writable\n');
+
+            const roClient = new BoxshClient({
+                boxshPath: BOXSH,
+                workers: 1,
+                sandbox: true,
+                binds: [{ mode: 'ro', src: roSrc, dst: roDst }],
+            });
+            const wrClient = new BoxshClient({
+                boxshPath: BOXSH,
+                workers: 1,
+                sandbox: true,
+                binds: [{ mode: 'wr', src: wrSrc, dst: wrDst }],
+            });
+
+            try {
+                const read = await roClient.exec('cat input.txt', roDst);
+                const denied = await roClient.exec("printf bad > input.txt", roDst);
+                const written = await wrClient.exec("printf changed > input.txt && cat input.txt", wrDst);
+
+                assert.equal(read.exitCode, 0);
+                assert.equal(read.stdout, 'readonly\n');
+                assert.notEqual(denied.exitCode, 0);
+                assert.equal(written.exitCode, 0);
+                assert.equal(written.stdout, 'changed');
+                assert.equal(fs.readFileSync(path.join(wrSrc, 'input.txt'), 'utf8'), 'changed');
+            } finally {
+                await roClient.close();
+                await wrClient.close();
+                try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+            }
+        });
+});

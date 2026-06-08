@@ -81,7 +81,7 @@ with BoxshClient() as client:
 ```python
 from pathlib import Path
 
-from boxsh_py import BoxshClient, CowBind, ReadOnlyBind
+from boxsh_py import BoxshClient, CowBind, ReadOnlyBind, ReadWriteBind
 
 base = Path("/repo")
 upper = Path("/tmp/boxsh-overlay")
@@ -91,10 +91,16 @@ with BoxshClient(
     binds=[
         CowBind(src=base, dst=upper),
         ReadOnlyBind(path=Path("/usr/share/zoneinfo")),
+        ReadOnlyBind(path=Path("/srv/repo-cache/project"), dst=Path("/codebase/project")),
+        ReadWriteBind(path=Path("/tmp/session"), dst=Path("/workspace")),
     ],
 ) as client:
     client.exec("git status", cwd=upper)
 ```
+
+`ReadOnlyBind(path=...)` and `ReadWriteBind(path=...)` expose the same absolute
+path inside the sandbox. On Linux, pass `dst=...` to expose the source path at a
+different sandbox destination.
 
 ## Inspecting changes
 

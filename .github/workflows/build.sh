@@ -74,9 +74,17 @@ fi
 if [[ "${BUILD_TAG}" != "" ]]; then
     mkdir -p release
     if [[ "${HOST_OS}" == "Darwin" ]]; then
-        cp ${BUILD_DIR}/boxsh release/boxsh-${BUILD_TAG}-darwin-${BUILD_ARCH}
-        codesign -f -s - release/boxsh-${BUILD_TAG}-darwin-${BUILD_ARCH}
+        artifact="release/boxsh-${BUILD_TAG}-darwin-${BUILD_ARCH}"
+        cp ${BUILD_DIR}/boxsh "${artifact}"
+        codesign -f -s - "${artifact}"
     else
-        cp ${BUILD_DIR}/boxsh release/boxsh-${BUILD_TAG}-linux-${BUILD_ARCH}
+        artifact="release/boxsh-${BUILD_TAG}-linux-${BUILD_ARCH}"
+        cp ${BUILD_DIR}/boxsh "${artifact}"
+    fi
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        (cd release && sha256sum "$(basename "${artifact}")" > "$(basename "${artifact}").sha256")
+    else
+        (cd release && shasum -a 256 "$(basename "${artifact}")" > "$(basename "${artifact}").sha256")
     fi
 fi

@@ -1,6 +1,8 @@
 export type BoxshBindOption =
     | { mode: 'ro'; path: string }
+    | { mode: 'ro'; src: string; dst: string }
     | { mode: 'wr'; path: string }
+    | { mode: 'wr'; src: string; dst: string }
     | { mode: 'cow'; src: string; dst: string };
 
 export interface BoxshClientOptions {

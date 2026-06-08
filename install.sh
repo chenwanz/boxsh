@@ -2,15 +2,17 @@
 # boxsh installer — download the latest release binary for your platform.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/xicilion/boxsh/master/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/chenwanz/boxsh/master/install.sh | sh
 #
 # Options (via environment variables):
+#   BOXSH_REPO      — GitHub repository (default: chenwanz/boxsh)
 #   BOXSH_VERSION   — specific version tag (default: latest)
 #   BOXSH_INSTALL   — installation directory (default: /usr/local/bin)
+#   BOXSH_SKIP_CHECKSUM=1 — skip release checksum verification
 
 set -e
 
-REPO="xicilion/boxsh"
+REPO="${BOXSH_REPO:-chenwanz/boxsh}"
 INSTALL_DIR="${BOXSH_INSTALL:-/usr/local/bin}"
 
 # Detect OS
@@ -52,19 +54,64 @@ fi
 
 FILENAME="boxsh-${BOXSH_VERSION}-${OS_TAG}-${ARCH_TAG}"
 URL="https://github.com/${REPO}/releases/download/${BOXSH_VERSION}/${FILENAME}"
+CHECKSUM_URL="${URL}.sha256"
 
 echo "Installing boxsh ${BOXSH_VERSION} (${OS_TAG}/${ARCH_TAG})..."
 echo "  from: ${URL}"
 echo "  to:   ${INSTALL_DIR}/boxsh"
 
-# Download
 TMP="$(mktemp)"
-trap 'rm -f "$TMP"' EXIT
+SUMTMP="$(mktemp)"
+trap 'rm -f "$TMP" "$SUMTMP"' EXIT
+
+# Download
 if ! curl -fSL -o "$TMP" "$URL"; then
     echo "Error: download failed. Check that the version and architecture are correct." >&2
     exit 1
 fi
 chmod +x "$TMP"
+
+sha256_file() {
+    target="$1"
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$target" | awk '{print $1}'
+        return 0
+    fi
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$target" | awk '{print $1}'
+        return 0
+    fi
+    echo "Error: neither sha256sum nor shasum is available for checksum verification." >&2
+    exit 1
+}
+
+verify_checksum() {
+    if [ "${BOXSH_SKIP_CHECKSUM:-}" = "1" ]; then
+        echo "Warning: skipping checksum verification because BOXSH_SKIP_CHECKSUM=1." >&2
+        return 0
+    fi
+
+    if ! curl -fsSL -o "$SUMTMP" "$CHECKSUM_URL"; then
+        echo "Error: checksum download failed: ${CHECKSUM_URL}" >&2
+        echo "       Set BOXSH_SKIP_CHECKSUM=1 only for trusted local testing." >&2
+        exit 1
+    fi
+
+    expected="$(sed -n 's/^\([0-9a-fA-F]\{64\}\).*/\1/p' "$SUMTMP" | head -1 | tr 'A-F' 'a-f')"
+    actual="$(sha256_file "$TMP" | tr 'A-F' 'a-f')"
+    if [ -z "$expected" ]; then
+        echo "Error: checksum file does not contain a SHA-256 digest: ${CHECKSUM_URL}" >&2
+        exit 1
+    fi
+    if [ "$actual" != "$expected" ]; then
+        echo "Error: checksum mismatch for ${FILENAME}" >&2
+        echo "       expected: ${expected}" >&2
+        echo "       actual:   ${actual}" >&2
+        exit 1
+    fi
+}
+
+verify_checksum
 
 resign_if_macos() {
     target="$1"
@@ -92,6 +139,11 @@ else
         sudo codesign -f -s - "${INSTALL_DIR}/boxsh" >/dev/null 2>&1 || \
             echo "Warning: failed to ad-hoc sign ${INSTALL_DIR}/boxsh; macOS may refuse to launch it." >&2
     fi
+fi
+
+if ! "${INSTALL_DIR}/boxsh" --help >/dev/null; then
+    echo "Error: installed boxsh failed to execute: ${INSTALL_DIR}/boxsh" >&2
+    exit 1
 fi
 
 echo "Done! Run 'boxsh --help' to get started."

@@ -52,19 +52,22 @@ In any mode, an optional OS-native sandbox can be enabled with `--sandbox`.
 ### One-line install (Linux / macOS)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/xicilion/boxsh/master/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/chenwanz/boxsh/master/install.sh | sh
 ```
 
-This auto-detects your OS and architecture, downloads the latest release binary, and installs it to `/usr/local/bin`.
+This auto-detects your OS and architecture, downloads the latest release binary, verifies its SHA-256 checksum, and installs it to `/usr/local/bin`.
 
 Options via environment variables:
 
 ```sh
 # Install a specific version
-BOXSH_VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/xicilion/boxsh/master/install.sh | sh
+BOXSH_VERSION=v3.2.0-wms.1 curl -fsSL https://raw.githubusercontent.com/chenwanz/boxsh/master/install.sh | sh
 
 # Install to a custom directory
-BOXSH_INSTALL=~/.local/bin curl -fsSL https://raw.githubusercontent.com/xicilion/boxsh/master/install.sh | sh
+BOXSH_INSTALL=~/.local/bin curl -fsSL https://raw.githubusercontent.com/chenwanz/boxsh/master/install.sh | sh
+
+# Install from another compatible fork
+BOXSH_REPO=owner/boxsh curl -fsSL https://raw.githubusercontent.com/chenwanz/boxsh/master/install.sh | sh
 ```
 
 Supported platforms: Linux (x64, ia32, arm64, arm, mips64, ppc64, riscv64, loong64) and macOS (arm64, x86_64).
@@ -308,7 +311,7 @@ boxsh distinguishes two kinds of errors per the MCP spec:
 }
 ```
 
-**Bind modes:** `cow:SRC:DST` (copy-on-write — project is read-only, writes go to DST), `ro:PATH` (read-only), `wr:PATH` (direct read-write). Add `--new-net-ns` to block network access.
+**Bind modes:** `cow:SRC:DST` (copy-on-write — project is read-only, writes go to DST), `ro:PATH` / `ro:SRC:DST` (read-only), `wr:PATH` / `wr:SRC:DST` (direct read-write). Add `--new-net-ns` to block network access. `ro:SRC:DST` and `wr:SRC:DST` remapping is supported on Linux.
 
 ### Sandboxing third-party MCP servers
 
@@ -391,7 +394,9 @@ Sandbox options (applied in both shell mode and RPC mode):
   --sandbox            Enable the sandbox.
   --new-net-ns         Create a new network namespace (loopback only).
   --bind ro:PATH       Expose PATH read-only inside the sandbox.
+  --bind ro:SRC:DST    Expose SRC read-only at DST inside the sandbox (Linux).
   --bind wr:PATH       Expose PATH read-write inside the sandbox.
+  --bind wr:SRC:DST    Expose SRC read-write at DST inside the sandbox (Linux).
   --bind cow:SRC:DST   Create a copy-on-write workspace at DST with SRC as the
                        read-only base. Writes go to DST; SRC is never modified.
                        Existing DST contents are reused.
@@ -423,7 +428,9 @@ boxsh --sandbox --bind wr:/data -c 'ls /'
 | `--sandbox` | Isolated environment; only system directories accessible; all project access requires explicit `--bind`; current UID mapped as root inside (Linux) |
 | `--new-net-ns` | Loopback-only; outbound network blocked |
 | `--bind ro:PATH` | Expose a host path read-only inside the sandbox |
+| `--bind ro:SRC:DST` | Expose host SRC read-only at DST inside the sandbox (Linux) |
 | `--bind wr:PATH` | Expose a host path read-write inside the sandbox |
+| `--bind wr:SRC:DST` | Expose host SRC read-write at DST inside the sandbox (Linux) |
 | `--bind cow:SRC:DST` | Copy-on-write overlay — SRC is read-only, writes go to DST |
 
 **Platform implementation details:**
@@ -525,4 +532,3 @@ boxsh is released under the MIT License.
 - [dash](http://gondor.apana.org.au/~herbert/dash/) — BSD license
 - [nlohmann/json](https://github.com/nlohmann/json) — MIT license
 - [libedit](https://www.thrysoee.dk/editline/) — BSD license
-
