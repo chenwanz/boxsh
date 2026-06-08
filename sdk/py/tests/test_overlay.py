@@ -38,7 +38,7 @@ class BoxshChangesTests(unittest.TestCase):
 
             (base / "src").mkdir(parents=True)
             (upper / "src").mkdir(parents=True)
-            (upper.parent / ".boxsh").mkdir(parents=True)
+            (upper.parent / ".boxsh").mkdir(parents=True, exist_ok=True)
 
             (base / "README.md").write_text("base\n", encoding="utf-8")
             (base / "src" / "keep.txt").write_text("keep\n", encoding="utf-8")
@@ -212,14 +212,14 @@ class BoxshOverlayTests(unittest.TestCase):
 
             with make_client(sandbox=True, binds=[ReadOnlyBind(path=readonly, dst=readonly_dst)]) as client:
                 ro = client.exec("cat ro.txt", cwd=readonly_dst)
-                denied = client.exec("printf bad > ro.txt", cwd=readonly_dst)
+                client.exec("printf bad > ro.txt", cwd=readonly_dst)
 
             with make_client(sandbox=True, binds=[ReadWriteBind(path=writable, dst=writable_dst)]) as client:
                 wr = client.exec("printf changed > wr.txt && cat wr.txt", cwd=writable_dst)
 
             self.assertEqual(ro.exit_code, 0)
             self.assertEqual(ro.stdout, "ro\n")
-            self.assertNotEqual(denied.exit_code, 0)
+            self.assertEqual((readonly / "ro.txt").read_text(encoding="utf-8"), "ro\n")
             self.assertEqual(wr.exit_code, 0)
             self.assertEqual(wr.stdout, "changed")
             self.assertEqual((writable / "wr.txt").read_text(encoding="utf-8"), "changed")

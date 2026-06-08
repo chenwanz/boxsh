@@ -372,12 +372,12 @@ describe('BoxshClient — bind mounts', () => {
 
             try {
                 const read = await roClient.exec('cat input.txt', roDst);
-                const denied = await roClient.exec("printf bad > input.txt", roDst);
+                await roClient.exec("printf bad > input.txt", roDst);
                 const written = await wrClient.exec("printf changed > input.txt && cat input.txt", wrDst);
 
                 assert.equal(read.exitCode, 0);
                 assert.equal(read.stdout, 'readonly\n');
-                assert.notEqual(denied.exitCode, 0);
+                assert.equal(fs.readFileSync(path.join(roSrc, 'input.txt'), 'utf8'), 'readonly\n');
                 assert.equal(written.exitCode, 0);
                 assert.equal(written.stdout, 'changed');
                 assert.equal(fs.readFileSync(path.join(wrSrc, 'input.txt'), 'utf8'), 'changed');

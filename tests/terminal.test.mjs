@@ -523,11 +523,17 @@ describe('terminal — PTY ANSI handling', () => {
   test('multi-line colored output all cleaned', async () => {
     const s = new BoxshSession();
     try {
-      const sc = BoxshSession.sc(
+      let sc = BoxshSession.sc(
         await s.call('run_in_terminal', {
           command: "printf '\\033[32mL1\\033[0m\\n\\033[33mL2\\033[0m\\n\\033[34mL3\\033[0m'",
         })
       );
+      const hasAllLines = () =>
+        sc.output.includes('L1') && sc.output.includes('L2') && sc.output.includes('L3');
+      for (let i = 0; i < 10 && !hasAllLines(); i++) {
+        sc = BoxshSession.sc(await s.call('get_terminal_output', { id: sc.id }));
+        if (sc.exited && hasAllLines()) break;
+      }
       assert.ok(sc.output.includes('L1'), 'L1 present');
       assert.ok(sc.output.includes('L2'), 'L2 present');
       assert.ok(sc.output.includes('L3'), 'L3 present');
