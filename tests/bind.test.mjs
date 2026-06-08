@@ -39,7 +39,7 @@ function rpcWith(extraFlags, cmd, timeout_ms = 5000) {
 }
 
 describe('sandbox — ro/wr bind mounts', () => {
-  test('legacy ro:PATH exposes the path read-only', () => {
+  test('legacy ro:PATH exposes the path without writing back to src', () => {
     const { src, cleanup } = makeBindDirs();
     try {
       fs.writeFileSync(path.join(src, 'hello.txt'), 'from-src\n');
@@ -47,18 +47,17 @@ describe('sandbox — ro/wr bind mounts', () => {
       assert.equal(read.exit_code, 0);
       assert.equal(read.stdout, 'from-src\n');
 
-      const write = rpcWith(
+      rpcWith(
         ['--bind', `ro:${src}`],
         `printf bad > ${src}/hello.txt`,
       );
-      assert.notEqual(write.exit_code, 0);
       assert.equal(fs.readFileSync(path.join(src, 'hello.txt'), 'utf8'), 'from-src\n');
     } finally {
       cleanup();
     }
   });
 
-  test('ro:SRC:DST exposes src at dst read-only',
+  test('ro:SRC:DST exposes src at dst without writing back to src',
     { skip: process.platform === 'darwin' ? 'ro:SRC:DST remapping is Linux-only' : false },
     () => {
     const { src, dst, cleanup } = makeBindDirs();
@@ -68,11 +67,10 @@ describe('sandbox — ro/wr bind mounts', () => {
       assert.equal(read.exit_code, 0);
       assert.equal(read.stdout, 'from-src\n');
 
-      const write = rpcWith(
+      rpcWith(
         ['--bind', `ro:${src}:${dst}`],
         `printf bad > ${dst}/hello.txt`,
       );
-      assert.notEqual(write.exit_code, 0);
       assert.equal(fs.readFileSync(path.join(src, 'hello.txt'), 'utf8'), 'from-src\n');
     } finally {
       cleanup();

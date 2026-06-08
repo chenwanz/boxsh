@@ -311,7 +311,7 @@ boxsh distinguishes two kinds of errors per the MCP spec:
 }
 ```
 
-**Bind modes:** `cow:SRC:DST` (copy-on-write — project is read-only, writes go to DST), `ro:PATH` / `ro:SRC:DST` (read-only), `wr:PATH` / `wr:SRC:DST` (direct read-write). Add `--new-net-ns` to block network access. `ro:SRC:DST` and `wr:SRC:DST` remapping is supported on Linux.
+**Bind modes:** `cow:SRC:DST` (copy-on-write — project is read-only, writes go to DST), `ro:PATH` / `ro:SRC:DST` (read-only source; host SRC is not modified), `wr:PATH` / `wr:SRC:DST` (direct read-write). Add `--new-net-ns` to block network access. `ro:SRC:DST` and `wr:SRC:DST` remapping is supported on Linux.
 
 ### Sandboxing third-party MCP servers
 
@@ -393,8 +393,8 @@ RPC options:
 Sandbox options (applied in both shell mode and RPC mode):
   --sandbox            Enable the sandbox.
   --new-net-ns         Create a new network namespace (loopback only).
-  --bind ro:PATH       Expose PATH read-only inside the sandbox.
-  --bind ro:SRC:DST    Expose SRC read-only at DST inside the sandbox (Linux).
+  --bind ro:PATH       Expose PATH as a read-only source inside the sandbox.
+  --bind ro:SRC:DST    Expose SRC as a read-only source at DST inside the sandbox (Linux).
   --bind wr:PATH       Expose PATH read-write inside the sandbox.
   --bind wr:SRC:DST    Expose SRC read-write at DST inside the sandbox (Linux).
   --bind cow:SRC:DST   Create a copy-on-write workspace at DST with SRC as the
@@ -427,8 +427,8 @@ boxsh --sandbox --bind wr:/data -c 'ls /'
 |---|---|
 | `--sandbox` | Isolated environment; only system directories accessible; all project access requires explicit `--bind`; current UID mapped as root inside (Linux) |
 | `--new-net-ns` | Loopback-only; outbound network blocked |
-| `--bind ro:PATH` | Expose a host path read-only inside the sandbox |
-| `--bind ro:SRC:DST` | Expose host SRC read-only at DST inside the sandbox (Linux) |
+| `--bind ro:PATH` | Expose a host path as a read-only source inside the sandbox |
+| `--bind ro:SRC:DST` | Expose host SRC as a read-only source at DST inside the sandbox (Linux) |
 | `--bind wr:PATH` | Expose a host path read-write inside the sandbox |
 | `--bind wr:SRC:DST` | Expose host SRC read-write at DST inside the sandbox (Linux) |
 | `--bind cow:SRC:DST` | Copy-on-write overlay — SRC is read-only, writes go to DST |

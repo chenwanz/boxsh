@@ -6,7 +6,8 @@
 namespace boxsh {
 
 // A single bind entry.  Three modes are supported:
-//   RO  — read-only:  host path exposed inside sandbox, writes denied.
+//   RO  — read-only source: host path exposed inside sandbox; writes must not
+//         modify the host source.
 //         On Linux, src may be exposed at a different dst path.
 //   RW  — read-write: host path exposed inside sandbox, writes allowed.
 //         On Linux, src may be exposed at a different dst path.
